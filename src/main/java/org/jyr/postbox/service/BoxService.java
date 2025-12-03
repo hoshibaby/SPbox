@@ -14,4 +14,10 @@ public interface BoxService {
 
     // urlKey로 박스 찾기 (익명 접근용)
     Box getBoxByUrlKey(String urlKey);
+
+
+
+
+
+
 }

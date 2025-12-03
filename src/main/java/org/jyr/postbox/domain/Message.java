@@ -22,10 +22,6 @@ public class Message {
     @JoinColumn(name = "box_id", nullable = false)
     private Box box;
 
-    // 익명 닉네임 (익명 방문자 전용)
-    @Column(length = 30)
-    private String nickname;
-
     // 본문
     @Column(nullable = false, length = 1000)
     private String content;
@@ -43,19 +39,20 @@ public class Message {
 
     private LocalDateTime replyCreatedAt;
 
+    // 작성자 타입: OWNER(박스 주인) / ANONYMOUS(익명)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private AuthorType authorType;
 
+    // OWNER일 때만 채워지는 필드
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="author_user_id")
+    @JoinColumn(name = "author_user_id")
     private User authorUser;
 
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.hidden = false;
-        // 기본값: 익명 작성자
         if (this.authorType == null) {
             this.authorType = AuthorType.ANONYMOUS;
         }
@@ -71,7 +68,4 @@ public class Message {
     public void hide() {
         this.hidden = true;
     }
-
-
-
 }

@@ -1,25 +1,31 @@
 package org.jyr.postbox.service;
 
 import org.jyr.postbox.domain.User;
-import org.jyr.postbox.dto.MessageCreateDTO;
-import org.jyr.postbox.dto.MessageDTO;
-
-import java.util.List;
+import org.jyr.postbox.dto.*;
 
 public interface MessageService {
 
-    // 익명/주인 모두 메시지 작성
+    // 1) 메시지 작성 (익명 or 주인)
     Long createMessage(MessageCreateDTO dto, User loginUserOrNull);
 
-    // 박스 주인용: 내 박스의 전체 메시지(숨김 포함)
-    List<MessageDTO> getMessagesForOwner(User owner);
+    // 2) MyBox - 메시지 리스트(페이지)
+    MessagePageDTO getMessagesForOwner(User owner, int page, int size);
 
-    // 공개용: 숨김 되지 않은 메시지(답변 탭 등에서 사용)
-    List<MessageDTO> getPublicMessages(String boxUrlKey);
+    // 3) 공개 메시지 리스트(페이지)
+    MessagePageDTO getPublicMessages(String boxUrlKey, int page, int size);
 
-    // 박스 주인이 메시지에 답변 달기
+    // 4) 답장 달기
     void replyToMessage(Long messageId, String replyContent, User owner);
 
-    // 박스 주인이 메시지 숨김 처리
+    // 5) 숨김 처리
     void hideMessage(Long messageId, User owner);
+
+    // 6) 블랙리스트 + 숨김
+    void blacklistUserByMessage(Long messageId, User owner);
+
+    // 7) MyBox - 메시지 상세 보기
+    MessageDetailDTO getMessageDetailForOwner(Long messageId, User owner);
+
+    // 8) MyBox 통합 응답 (박스 정보 + 메시지 리스트)
+    MyBoxResponseDTO getMyBox(User owner);
 }

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -17,12 +19,12 @@ public class Box {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 박스 주인
+    // 박스 주인 (1:1)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User owner;
 
-    // 링크에 사용할 고유 키
+    // 링크에 사용할 고유 키 (ex: abc123ef)
     @Column(nullable = false, unique = true, length = 50)
     private String urlKey;
 
@@ -31,6 +33,11 @@ public class Box {
     private String title;
 
     private LocalDateTime createdAt;
+
+    // 선택: 박스에 달린 메시지들
+    @OneToMany(mappedBy = "box")
+    @Builder.Default
+    private List<Message> messages = new ArrayList<>();
 
     @PrePersist
     public void onCreate() {
