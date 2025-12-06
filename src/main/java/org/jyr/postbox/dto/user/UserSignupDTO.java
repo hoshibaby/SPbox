@@ -1,9 +1,10 @@
-package org.jyr.postbox.dto;
+package org.jyr.postbox.dto.user;
 
 import lombok.Data;
 
 @Data
 public class UserSignupDTO {
+    private String userId;
     private String email;
     private String password;
     private String passwordCheck;

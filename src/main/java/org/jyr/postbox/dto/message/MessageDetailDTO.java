@@ -1,4 +1,4 @@
-package org.jyr.postbox.dto;
+package org.jyr.postbox.dto.message;
 
 import lombok.Builder;
 import lombok.Data;
@@ -18,4 +18,8 @@ public class MessageDetailDTO {
     // 답장 정보
     private String replyContent;       // 답변 내용 (없으면 null)
     private LocalDateTime replyCreatedAt;
+
+    private Long authorUserId;   // null 가능
+    private String authorType;   // OWNER / ANONYMOUS
+    private Long boxOwnerId;
 }

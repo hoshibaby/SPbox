@@ -22,6 +22,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    @Column(nullable = false, unique = true, length = 30)
+    private String userId;
+
     // 암호화된 비밀번호
     @Column(nullable = false, length = 200)
     private String password;

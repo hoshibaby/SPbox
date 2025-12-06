@@ -2,9 +2,9 @@ package org.jyr.postbox.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.jyr.postbox.domain.User;
-import org.jyr.postbox.dto.UserSignupDTO;
-import org.jyr.postbox.dto.LoginRequestDTO;
-import org.jyr.postbox.dto.LoginResponseDTO;
+import org.jyr.postbox.dto.user.UserSignupDTO;
+import org.jyr.postbox.dto.user.LoginRequestDTO;
+import org.jyr.postbox.dto.user.LoginResponseDTO;
 import org.jyr.postbox.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +25,8 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO dto) {
-
-        User user = userService.findByEmail(dto.getEmail());
-
-        // 비밀번호 체크는 LoginResponseDTO 안에서 할 예정
-        LoginResponseDTO response = new LoginResponseDTO(user);
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO dto) {
+        LoginResponseDTO response = userService.login(dto);
         return ResponseEntity.ok(response);
     }
 }

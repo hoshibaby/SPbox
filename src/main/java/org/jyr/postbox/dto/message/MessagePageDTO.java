@@ -1,4 +1,4 @@
-package org.jyr.postbox.dto;
+package org.jyr.postbox.dto.message;
 
 
 import lombok.Builder;

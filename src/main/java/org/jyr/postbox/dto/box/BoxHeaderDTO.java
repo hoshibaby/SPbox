@@ -1,12 +1,10 @@
-package org.jyr.postbox.dto;
+package org.jyr.postbox.dto.box;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 // 박스 상단 정보
-@Data
+@Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

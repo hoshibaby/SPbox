@@ -3,7 +3,7 @@ package org.jyr.postbox.service;
 import lombok.RequiredArgsConstructor;
 import org.jyr.postbox.domain.Box;
 import org.jyr.postbox.domain.User;
-import org.jyr.postbox.dto.BoxDTO;
+import org.jyr.postbox.dto.box.BoxHeaderDTO;
 import org.jyr.postbox.repository.BoxRepository;
 import org.jyr.postbox.repository.MessageRepository;
 import org.springframework.stereotype.Service;
@@ -35,30 +35,27 @@ public class BoxServiceImpl implements BoxService {
     }
 
     @Override
-    public BoxDTO getBoxForUser(User user) {
+    public BoxHeaderDTO getBoxHeaderByUrlKey(String urlKey) {
 
-        Box box = boxRepository.findByOwner(user)
-                .orElseThrow(() -> new IllegalStateException("박스가 없습니다."));
+        // 1) 박스 찾기
+        Box box = boxRepository.findByUrlKey(urlKey)
+                .orElseThrow(() -> new IllegalArgumentException("박스를 찾을 수 없습니다."));
 
-        long total = messageRepository.countByBox(box); // 전체 메시지 수
-        long unread = messageRepository.countByBoxAndHiddenFalse(box); // 숨김 아님 = 노출 메시지 수
-        long replyCount = messageRepository.countByBoxAndReplyContentIsNotNull(box); // 답장 달린 개수
+        // 2) 메시지 카운트 구하기
+        long totalMessageCount  = messageRepository.countByBox(box);
+        long unreadMessageCount = messageRepository.countByBoxAndHiddenFalse(box);
+        long replyCount         = messageRepository.countByBoxAndReplyContentIsNotNull(box);
 
-        return BoxDTO.builder()
-                .id(box.getId())
-                .title(box.getTitle())
+        // 3) 헤더 DTO 생성
+        return BoxHeaderDTO.builder()
+                .boxId(box.getId())
+                .boxTitle(box.getTitle())
                 .urlKey(box.getUrlKey())
-                .ownerName(user.getNickname())
-                .profileImageUrl(user.getProfileImageUrl()) // Firestore 붙으면 여기 채우면 됨
-                .totalMessageCount(total)
-                .unreadMessageCount(unread)
+                .ownerName(box.getOwner().getNickname())
+                .profileImageUrl(box.getOwner().getProfileImageUrl())
+                .totalMessageCount(totalMessageCount)
+                .unreadMessageCount(unreadMessageCount)
                 .replyCount(replyCount)
                 .build();
-    }
-
-    @Override
-    public Box getBoxByUrlKey(String urlKey) {
-        return boxRepository.findByUrlKey(urlKey)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 박스입니다."));
     }
 }

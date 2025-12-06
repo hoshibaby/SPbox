@@ -44,6 +44,8 @@ public class Message {
     @Column(nullable = false, length = 20)
     private AuthorType authorType;
 
+
+
     // OWNER일 때만 채워지는 필드
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_user_id")

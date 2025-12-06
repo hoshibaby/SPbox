@@ -11,14 +11,11 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
+    // ========= 목록(리스트) 조회 =========
     // 특정 박스의 메시지 목록 (최신순)
     List<Message> findByBoxOrderByCreatedAtDesc(Box box);
 
-    // 숨김 처리 안 된 메시지 (공개용, 최신순)
-    List<Message> findByBoxAndHiddenFalseOrderByCreatedAtDesc(Box box);
-
-    // 특정 박스에서 특정 유저가 쓴 메시지들
-    List<Message> findByBoxAndAuthorUser(Box box, User authorUser);
+    // ========= 카운트 =========
 
     // 총 메시지 수
     long countByBox(Box box);
@@ -26,8 +23,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // 숨김되지 않은 메시지 수 = 읽지 않은 메시지 역할
     long countByBoxAndHiddenFalse(Box box);
 
-    // (선택) 내가 쓴 답장 수만 보고 싶다면
-    long countByAuthorUser(User authorUser);
+    //답장이 존재하는 메시지 수
 
     long countByBoxAndReplyContentIsNotNull(Box box);
 
@@ -38,6 +34,5 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     // 공개 모드에서 보는 메시지 목록 (숨김 제외, 최신순)
     Page<Message> findByBoxAndHiddenFalseOrderByCreatedAtDesc(Box box, Pageable pageable);
-
 
 }

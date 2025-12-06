@@ -1,7 +1,10 @@
 package org.jyr.postbox.service;
 
 import org.jyr.postbox.domain.User;
-import org.jyr.postbox.dto.*;
+import org.jyr.postbox.dto.box.MyBoxResponseDTO;
+import org.jyr.postbox.dto.message.MessageCreateDTO;
+import org.jyr.postbox.dto.message.MessageDetailDTO;
+import org.jyr.postbox.dto.message.MessagePageDTO;
 
 public interface MessageService {
 
@@ -16,6 +19,7 @@ public interface MessageService {
 
     // 4) 답장 달기
     void replyToMessage(Long messageId, String replyContent, User owner);
+    void clearReply(Long messageId, User owner);
 
     // 5) 숨김 처리
     void hideMessage(Long messageId, User owner);
@@ -28,4 +32,12 @@ public interface MessageService {
 
     // 8) MyBox 통합 응답 (박스 정보 + 메시지 리스트)
     MyBoxResponseDTO getMyBox(User owner);
+
+    // 9) 로그인 유저가 타 계정에 남긴 댓글 수정 삭제
+    void updateMessage(Long messageId, String newContent, User loginUser);
+    void deleteMessage(Long messageId, User loginUser);
+
+
+
+
 }

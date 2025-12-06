@@ -5,6 +5,8 @@ import org.jyr.postbox.domain.Box;
 import org.jyr.postbox.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface BlackListRepository extends JpaRepository<BlackList, Long> {
 
     // 이 박스에서 이 유저가 차단됐는지 확인
@@ -12,5 +14,8 @@ public interface BlackListRepository extends JpaRepository<BlackList, Long> {
 
     // 필요하면 해제할 때 사용
     void deleteByBoxAndBlockedUser(Box box, User blockedUser);
+
+    // 내 박스에서 차단된 유저 목록
+    List<BlackList> findByBox(Box box);
 
 }
