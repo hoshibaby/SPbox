@@ -123,6 +123,37 @@ public class MessageServiceImpl implements MessageService {
                 .build();
     }
 
+    // =============== MyBox "답변 있는 메시지" 리스트(페이지) ===============
+    @Override
+    @Transactional(readOnly = true)
+    public MessagePageDTO getAnsweredMessagesForOwner(User owner, int page, int size) {
+
+        // 1) 박스 찾기
+        Box box = boxRepository.findByOwner(owner)
+                .orElseThrow(() -> new IllegalStateException("해당 유저의 박스가 없습니다."));
+
+        // 2) 페이지 정보
+        PageRequest pageable = PageRequest.of(page, size);
+
+        // 3) ✅ replyContent 가 NOT NULL 인 메시지만 조회
+        Page<Message> result = messageRepository
+                .findByBoxAndReplyContentIsNotNullOrderByCreatedAtDesc(box, pageable);
+
+        // 4) MessagePageDTO 로 변환
+        return MessagePageDTO.builder()
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalPages(result.getTotalPages())
+                .totalElements(result.getTotalElements())
+                .content(
+                        result.getContent().stream()
+                                .map(this::toSummaryDTO)
+                                .collect(Collectors.toList())
+                )
+                .allowAnonymous(box.isAllowAnonymous())
+                .build();
+    }
+
 
 
     // =============== 공개 메시지 리스트(페이지) ===============
@@ -188,15 +219,19 @@ public class MessageServiceImpl implements MessageService {
 
         // 이 메시지가 진짜 이 사람(post box 주인)의 것인지 확인
         if (!message.getBox().getOwner().getId().equals(owner.getId())) {
-              throw new IllegalStateException("내 박스의 메시지가 아닙니다.");
+            throw new IllegalStateException("내 박스의 메시지가 아닙니다.");
         }
 
         // 답장 내용/시간 비우기
         message.setReplyContent(null);
         message.setReplyCreatedAt(null);
 
+        // 🔥 지금은 OWNER 답변만 있으니까, 이걸 지우면 "답변 없음" 상태
+        message.setHasAnyAnswer(false);
+
         messageRepository.save(message);
     }
+
 
     @Override
     public void hideMessage(Long messageId, User owner) {

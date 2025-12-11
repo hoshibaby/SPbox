@@ -41,7 +41,13 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // 필요하면 이런 식으로도 사용 가능
     void deleteAllByBox(Box box);
 
-    // 🔹 특정 유저가 작성한 모든 메시지 (어느 박스든 상관없이)
+    // 특정 유저가 작성한 모든 메시지 (어느 박스든 상관없이)
     List<Message> findByAuthorUser(User authorUser);
+
+    // 답변 게시판용: hasAnyAnswer = true 인 메시지만 (최신순)
+    Page<Message> findByBoxAndHasAnyAnswerTrueOrderByCreatedAtDesc(Box box, Pageable pageable);
+
+    // 답변이 존재하는 메시지 목록 (replyContent NOT NULL)
+    Page<Message> findByBoxAndReplyContentIsNotNullOrderByCreatedAtDesc(Box box, Pageable pageable);//답변 메세지 수
 
 }

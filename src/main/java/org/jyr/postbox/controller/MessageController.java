@@ -68,6 +68,23 @@ public class MessageController {
     }
 
     // =========================
+    // 2-1. MyBox - "답변 있는 메시지" 목록 조회
+    // =========================
+    @GetMapping("/me/messages/answered")
+    public ResponseEntity<MessagePageDTO> myAnsweredMessages(
+            @RequestParam("userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        User owner = userService.findById(userId);
+        MessagePageDTO dto = messageService.getAnsweredMessagesForOwner(owner, page, size);
+        return ResponseEntity.ok(dto);
+    }
+
+
+
+
+    // =========================
     // 3. MyBox - 메시지 상세 조회
     // =========================
     @GetMapping("/me/messages/{id}")

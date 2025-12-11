@@ -15,6 +15,9 @@ public interface MessageService {
     // 2) MyBox - 메시지 리스트(페이지)
     MessagePageDTO getMessagesForOwner(User owner, int page, int size);
 
+    // 2-1) MyBox - "답변 있는 메시지" 리스트(페이지)
+    MessagePageDTO getAnsweredMessagesForOwner(User owner, int page, int size);
+
     // 3) 공개 메시지 리스트(페이지)
     MessagePageDTO getPublicMessages(String boxUrlKey, int page, int size);
 

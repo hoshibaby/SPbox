@@ -29,6 +29,10 @@ public class Message {
     // 작성 시간
     private LocalDateTime createdAt;
 
+    // 어떤 형태든 "답변이 하나라도 있다"는 플래그
+    @Column(nullable = false)
+    private boolean hasAnyAnswer;
+
     // 숨김 여부 (박스 주인이 가릴 때)
     @Column(nullable = false)
     private boolean hidden;
@@ -59,6 +63,8 @@ public class Message {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.hidden = false;
+        this.systemMessage = false;
+        this.hasAnyAnswer = false;
         if (this.authorType == null) {
             this.authorType = AuthorType.ANONYMOUS;
         }
@@ -68,6 +74,7 @@ public class Message {
     public void writeReply(String replyContent) {
         this.replyContent = replyContent;
         this.replyCreatedAt = LocalDateTime.now();
+        this.hasAnyAnswer = true;
     }
 
     // 숨김 처리

@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.*;
 
 @Service
@@ -118,6 +119,65 @@ public class UserServiceImpl implements UserService {
         response.setAddressId(user.getAddressId());
 
         return response;
+    }
+
+    // =========================
+    // 아이디 / 비밀번호 찾기
+    // =========================
+
+    @Override
+    public String findUserIdByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 가입된 계정을 찾을 수 없습니다."));
+        return user.getUserId();
+    }
+
+    @Override
+    @Transactional
+    public String resetPassword(String userId, String email) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+
+        if (!user.getEmail().equals(email)) {
+            throw new IllegalArgumentException("아이디와 이메일 정보가 일치하지 않습니다.");
+        }
+
+        // 1) 임시 비밀번호 생성
+        String tempPassword = generateTempPassword(10);
+
+        // 2) 비밀번호 변경 (암호화)
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+
+        // 3) (이메일 발송은 나중에 추가)
+        return tempPassword;
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String userId, String currentPassword, String newPassword) {
+
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    // 임시 비밀번호 생성 유틸
+    private String generateTempPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int idx = random.nextInt(chars.length());
+            sb.append(chars.charAt(idx));
+        }
+        return sb.toString();
     }
 
     // =========================
@@ -240,9 +300,6 @@ public class UserServiceImpl implements UserService {
         // 7) 마지막으로 사용자 삭제
         userRepository.delete(user);
     }
-
-
-
 
     // =========================
     // addressId 관련 헬퍼 메서드

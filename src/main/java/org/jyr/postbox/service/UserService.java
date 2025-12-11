@@ -26,6 +26,13 @@ public interface UserService {
 
     MyProfileResponseDTO updateMyProfile(String userId, MyProfileUpdateRequestDTO dto);
 
+    // ⭐ 이메일로 userId 찾기
+    String findUserIdByEmail(String email);
 
+    // 아이디+이메일로 검증 후 임시 비밀번호 발급
+    String resetPassword(String userId, String email);
+
+    // ⭐ 비밀번호 변경 (로그인 상태)
+    void changePassword(String userId, String currentPassword, String newPassword);
 
 }
