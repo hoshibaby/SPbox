@@ -8,6 +8,7 @@ import org.jyr.postbox.dto.message.MessagePageDTO;
 import org.jyr.postbox.dto.message.MessageUpdateRequestDTO;
 import org.jyr.postbox.service.MessageService;
 import org.jyr.postbox.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,29 +25,44 @@ public class MessageController {
     // 1. 메시지 작성 (익명 / 로그인 / 박스 주인)
     // =========================
     @PostMapping("/message")
-    public ResponseEntity<?> writeMessage(
+    public ResponseEntity<Long> createMessage(
             @RequestBody MessageCreateDTO dto,
-            @RequestParam(value = "userId", required = false) String userIdOrNull
+            @RequestParam(value = "userId", required = false) Long userId // 로그인 유저 PK (선택)
     ) {
-        User loginUser = null;
-        if (userIdOrNull != null) {
-            loginUser = userService.findByUserId(userIdOrNull);
-        }
 
-        Long id = messageService.createMessage(dto, loginUser);
-        return ResponseEntity.ok("메시지 등록 완료! id = " + id);
+        User loginUserOrNull = null;
+        if (userId != null) {
+            loginUserOrNull = userService.findById(userId);
+        }
+        Long messageId = messageService.createMessage(dto, loginUserOrNull);
+        // 201 + 생성된 메시지 PK 반환
+        return ResponseEntity.status(HttpStatus.CREATED).body(messageId);
     }
+
+    // =========================
+    // 1-1. 공개 박스 - 메시지 목록 조회 (익명/회원 모두 접근)
+    // =========================
+    @GetMapping("/boxes/{boxUrlKey}/messages")
+    public ResponseEntity<MessagePageDTO> getPublicMessages(
+            @PathVariable String boxUrlKey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        MessagePageDTO dto = messageService.getPublicMessages(boxUrlKey, page, size);
+        return ResponseEntity.ok(dto);
+    }
+
 
     // =========================
     // 2. MyBox - 메시지 목록 조회
     // =========================
     @GetMapping("/me/messages")
     public ResponseEntity<MessagePageDTO> myMessages(
-            @RequestParam("userId") String userId,
+            @RequestParam("userId") Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        User owner = userService.findByUserId(userId);
+        User owner = userService.findById(userId);
         MessagePageDTO dto = messageService.getMessagesForOwner(owner, page, size);
         return ResponseEntity.ok(dto);
     }
@@ -57,9 +73,9 @@ public class MessageController {
     @GetMapping("/me/messages/{id}")
     public ResponseEntity<MessageDetailDTO> getDetail(
             @PathVariable Long id,
-            @RequestParam("userId") String userId
+            @RequestParam("userId") Long userId
     ) {
-        User owner = userService.findByUserId(userId);
+        User owner = userService.findById(userId);
         MessageDetailDTO dto = messageService.getMessageDetailForOwner(id, owner);
         return ResponseEntity.ok(dto);
     }
@@ -74,10 +90,10 @@ public class MessageController {
     )
     public ResponseEntity<?> reply(
             @PathVariable Long id,
-            @RequestParam("userId") String userId,
+            @RequestParam("userId") Long userId,
             @RequestBody(required = false) String replyContent
     ) {
-        User owner = userService.findByUserId(userId);
+        User owner = userService.findById(userId);
 
         String trimmed = (replyContent == null) ? "" : replyContent.trim();
 
@@ -98,9 +114,9 @@ public class MessageController {
     @PatchMapping("/me/messages/{id}/hide")
     public ResponseEntity<?> hide(
             @PathVariable Long id,
-            @RequestParam("userId") String userId
+            @RequestParam("userId") Long userId
     ) {
-        User owner = userService.findByUserId(userId);
+        User owner = userService.findById(userId);
         messageService.hideMessage(id, owner);
         return ResponseEntity.ok("숨김 처리 완료!");
     }
@@ -111,9 +127,9 @@ public class MessageController {
     @PostMapping("/me/messages/{id}/blacklist")
     public ResponseEntity<?> blacklistByMessage(
             @PathVariable Long id,
-            @RequestParam("userId") String userId
+            @RequestParam("userId") Long userId
     ) {
-        User owner = userService.findByUserId(userId);
+        User owner = userService.findById(userId);
         messageService.blacklistUserByMessage(id, owner);
         return ResponseEntity.ok("블랙리스트 설정 및 메시지 숨김 완료!");
     }
@@ -127,7 +143,7 @@ public class MessageController {
             @PathVariable Long id,
             @RequestBody MessageUpdateRequestDTO dto
     ) {
-        User loginUser = userService.findByUserId(dto.getUserId());
+        User loginUser = userService.findById(dto.getUserId()); // dto.userId도 Long PK
         messageService.updateMessage(id, dto.getContent(), loginUser);
         return ResponseEntity.ok("메시지 수정 완료");
     }
@@ -139,11 +155,12 @@ public class MessageController {
     @DeleteMapping("/me/messages/{id}")
     public ResponseEntity<?> deleteMessage(
             @PathVariable Long id,
-            @RequestParam("userId") String userId
+            @RequestParam("userId") Long userId
     ) {
-        User loginUser = userService.findByUserId(userId);
+        User loginUser = userService.findById(userId);
         messageService.deleteMessage(id, loginUser);
         return ResponseEntity.ok("메시지 삭제 완료");
     }
+
 
 }

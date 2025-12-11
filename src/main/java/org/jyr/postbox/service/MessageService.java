@@ -11,6 +11,7 @@ public interface MessageService {
     // 1) 메시지 작성 (익명 or 주인)
     Long createMessage(MessageCreateDTO dto, User loginUserOrNull);
 
+
     // 2) MyBox - 메시지 리스트(페이지)
     MessagePageDTO getMessagesForOwner(User owner, int page, int size);
 

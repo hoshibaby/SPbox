@@ -58,4 +58,35 @@ public class BoxServiceImpl implements BoxService {
                 .replyCount(replyCount)
                 .build();
     }
+
+    @Override
+    public BoxHeaderDTO getBoxHeaderByUserId(String userId) {
+        Box box = boxRepository.findByOwner_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("박스를 찾을 수 없습니다."));
+        return buildHeaderDTO(box);
+    }
+
+    @Override
+    public Box getBoxByOwnerUserId(String userId) {
+        return boxRepository.findByOwner_UserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("박스를 찾을 수 없습니다."));
+    }
+
+    // 공통 로직 분리: 헤더 DTO 만드는 부분
+    private BoxHeaderDTO buildHeaderDTO(Box box) {
+        long totalMessageCount  = messageRepository.countByBox(box);
+        long unreadMessageCount = messageRepository.countByBoxAndHiddenFalse(box);
+        long replyCount         = messageRepository.countByBoxAndReplyContentIsNotNull(box);
+
+        return BoxHeaderDTO.builder()
+                .boxId(box.getId())
+                .boxTitle(box.getTitle())
+                .urlKey(box.getUrlKey())
+                .ownerName(box.getOwner().getNickname())
+                .profileImageUrl(box.getOwner().getProfileImageUrl())
+                .totalMessageCount(totalMessageCount)
+                .unreadMessageCount(unreadMessageCount)
+                .replyCount(replyCount)
+                .build();
+    }
 }

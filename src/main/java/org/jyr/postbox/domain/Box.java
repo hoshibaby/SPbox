@@ -39,6 +39,9 @@ public class Box {
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
 
+    @Column(nullable = false)
+    private boolean allowAnonymous = true;
+
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

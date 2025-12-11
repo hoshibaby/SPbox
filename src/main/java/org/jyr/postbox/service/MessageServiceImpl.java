@@ -11,11 +11,14 @@ import org.jyr.postbox.dto.message.MessageSummaryDTO;
 import org.jyr.postbox.repository.BlackListRepository;
 import org.jyr.postbox.repository.BoxRepository;
 import org.jyr.postbox.repository.MessageRepository;
+import org.jyr.postbox.repository.NotificationRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.jyr.postbox.service.NotificationService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +30,8 @@ public class MessageServiceImpl implements MessageService {
     private final BoxRepository boxRepository;
     private final MessageRepository messageRepository;
     private final BlackListRepository blackListRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
     // =============== 메시지 작성 ===============
     @Override
@@ -36,42 +41,59 @@ public class MessageServiceImpl implements MessageService {
         Box box = boxRepository.findByUrlKey(dto.getBoxUrlKey())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 박스입니다."));
 
-        // 🔥 블랙리스트 체크 (로그인 유저인 경우에만)
+
+        // 2) 블랙리스트 체크
         if (loginUserOrNull != null &&
                 blackListRepository.existsByBoxAndBlockedUser(box, loginUserOrNull)) {
             throw new IllegalStateException("이 박스에서 차단된 사용자입니다.");
         }
 
-        // 2) 작성자 타입 결정
+        // 2-1)로그인 필수 옵션일 경우 체크
+        if (!box.isAllowAnonymous() && loginUserOrNull == null) {
+            throw new IllegalStateException("로그인한 사용자만 메시지를 작성할 수 있습니다.");
+        }
+
+        // 3) 작성자 타입 / 작성자 유저 결정
         AuthorType authorType;
         User authorUser = null;
 
-        // 로그인한 유저이고, 그 유저가 박스 주인이면 → OWNER 글
         if (loginUserOrNull != null &&
                 loginUserOrNull.getId().equals(box.getOwner().getId())) {
 
             authorType = AuthorType.OWNER;
-            authorUser = loginUserOrNull;    // 주인 정보
-
+            authorUser = loginUserOrNull;
         } else {
-            // 익명 방문자 or 로그인했지만 남의 박스에 쓰는 경우
             authorType = AuthorType.ANONYMOUS;
-
-            // ⭐ 로그인한 방문자라면, 내부적으로는 누군지 기억해 두기
             if (loginUserOrNull != null) {
-                authorUser = loginUserOrNull;   // ← 이게 포인트!
+                authorUser = loginUserOrNull;
             }
         }
 
-        // 3) Message 엔티티 생성 (nickname 없이)
+        // 4) 메시지 생성
         Message message = Message.builder()
                 .box(box)
                 .content(dto.getContent())
                 .authorType(authorType)
-                .authorUser(authorUser)   // 방문자/주인 모두 여기 저장
+                .authorUser(authorUser)
+                .hidden(false)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         Message saved = messageRepository.save(message);
+
+        // 5) 🔔 알림 생성 (Notification 엔티티에 맞게!)
+        Notification notification = Notification.builder()
+                .targetUser(box.getOwner())              // 박스 주인
+                .type(NotificationType.COMMENT)          // ENUM 값 실제 프로젝트 기준
+                .alertMessage("새로운 익명 메시지가 도착했어요!")  // 엔티티의 필드명에 맞춤
+                .message(saved)                          // message FK
+                .linkUrl("/me/messages/" + saved.getId())// 화면 이동 링크
+                .read(false)                             // @PrePersist가 있긴 하지만 명시해도 OK
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        notificationRepository.save(notification);
+
         return saved.getId();
     }
 
@@ -97,6 +119,7 @@ public class MessageServiceImpl implements MessageService {
                                 .map(this::toSummaryDTO)
                                 .collect(Collectors.toList())
                 )
+                .allowAnonymous(box.isAllowAnonymous())
                 .build();
     }
 
@@ -111,6 +134,7 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new IllegalArgumentException("박스를 찾을 수 없습니다."));
 
         PageRequest pageable = PageRequest.of(page, size);
+        //메세지 숨김
         Page<Message> result = messageRepository
                 .findByBoxAndHiddenFalseOrderByCreatedAtDesc(box, pageable);
 
@@ -124,6 +148,7 @@ public class MessageServiceImpl implements MessageService {
                                 .map(this::toSummaryDTO)
                                 .collect(Collectors.toList())
                 )
+                .allowAnonymous(box.isAllowAnonymous())
                 .build();
     }
 
@@ -138,7 +163,22 @@ public class MessageServiceImpl implements MessageService {
             throw new IllegalStateException("이 메시지에 답변할 권한이 없습니다.");
         }
 
+        // 1) 답장 쓰기
         message.writeReply(replyContent);
+
+        // 2) 알림 대상 = 원래 메시지를 쓴 회원 (익명이면 null)
+        User authorUser = message.getAuthorUser();
+
+        // 🔥 작성자가 존재하고 + "오너와 다른 사람"일 때만 알림 생성
+        if (authorUser != null && !authorUser.getId().equals(owner.getId())) {
+            notificationService.createNotification(
+                    authorUser.getId(),                     // targetUserId
+                    NotificationType.OWNER_REPLY,
+                    "답글 작성한 메세지에 답글이 달렸어요",
+                    "/me/messages/" + message.getId(),      // 클릭 시 이동 링크
+                    message.getId()
+            );
+        }
     }
 
     @Transactional
@@ -179,20 +219,21 @@ public class MessageServiceImpl implements MessageService {
 
         Box box = message.getBox();
 
+        // 박스 주인 검증
         if (!box.getOwner().getId().equals(owner.getId())) {
             throw new IllegalStateException("이 박스의 주인이 아닙니다.");
         }
 
         User blockedUser = message.getAuthorUser();
 
-        // 익명인 경우 - 유저 차단 불가 → 메시지만 숨기기
+        // 1) 익명인 경우 - 유저 차단 불가 → 메시지만 숨기기
         if (blockedUser == null) {
             message.hide();
             messageRepository.save(message);
             return;
         }
 
-        // 블랙리스트 저장
+        // 2) 블랙리스트 저장 (중복 방지)
         if (!blackListRepository.existsByBoxAndBlockedUser(box, blockedUser)) {
             blackListRepository.save(
                     BlackList.builder()
@@ -202,10 +243,22 @@ public class MessageServiceImpl implements MessageService {
             );
         }
 
-        // 메시지 숨김
+        // 3) 원본 메시지 숨김
         message.hide();
         messageRepository.save(message);
+
+        // 4)  시스템 메시지(주인만을 위한 기록) 하나 남기기
+        Message systemMsg = Message.builder()
+                .box(box)
+                .content(blockedUser.getNickname() + " 님을 블랙리스트에 추가했어요.")
+                .authorType(AuthorType.OWNER) // 또는 별도 타입이 있으면 그걸 사용
+                .authorUser(owner)
+                .systemMessage(true)          // 여기 중요!
+                .build();
+
+        messageRepository.save(systemMsg);
     }
+
 
     // =========================
     // 내부 변환 메서드들
@@ -254,14 +307,19 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional(readOnly = true)
-    public MessageDetailDTO getMessageDetailForOwner(Long messageId, User owner) {
+    public MessageDetailDTO getMessageDetailForOwner(Long messageId, User loginUser) {
 
         // 1) 메시지 조회
         Message m = messageRepository.findById(messageId)
                 .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
 
-        // 2) 권한 체크 - 이 메시지가 owner 의 박스에 달린 건지 확인
-        if (!m.getBox().getOwner().getId().equals(owner.getId())) {
+        Long loginId = loginUser.getId();
+        Long ownerId = m.getBox().getOwner().getId();
+        Long authorId = (m.getAuthorUser() != null) ? m.getAuthorUser().getId() : null;
+
+        // 🔥 권한 체크: 박스 주인 OR 작성자만 허용
+        if (!loginId.equals(ownerId) &&
+                (authorId == null || !loginId.equals(authorId))) {
             throw new IllegalStateException("이 메시지에 접근할 권한이 없습니다.");
         }
 
@@ -296,31 +354,37 @@ public class MessageServiceImpl implements MessageService {
         long unreadMessageCount = messageRepository.countByBoxAndHiddenFalse(box);
         long replyCount         = messageRepository.countByBoxAndReplyContentIsNotNull(box);
 
-        // 2-1) 박스 헤더 DTO 생성
+        // 3) 박스 헤더 DTO 생성
         BoxHeaderDTO boxHeaderDTO = BoxHeaderDTO.builder()
                 .boxId(box.getId())
                 .boxTitle(box.getTitle())
                 .urlKey(box.getUrlKey())
-                .ownerName(owner.getNickname())
+                .ownerName(owner.getNickname())          // 🔥 최신 nickname 반영
                 .profileImageUrl(owner.getProfileImageUrl())
                 .totalMessageCount(totalMessageCount)
                 .unreadMessageCount(unreadMessageCount)
                 .replyCount(replyCount)
+                .allowAnonymous(box.isAllowAnonymous())
                 .build();
 
-        // 3) 메시지 요약 리스트
+        // 4) 메시지 요약 리스트
         List<MessageSummaryDTO> summaryList = messageRepository
                 .findByBoxOrderByCreatedAtDesc(box)
                 .stream()
                 .map(this::toSummaryDTO)
                 .toList();
 
-        // 4) 조합해서 리턴
+        // 5) ⭐ MyBoxResponseDTO 전부 채워서 리턴
         return MyBoxResponseDTO.builder()
+                .nickname(owner.getNickname())               // 🔥 추가
+                .profileImageUrl(owner.getProfileImageUrl()) // 🔥 추가
+                .headerImageUrl(owner.getHeaderImageUrl())   // 🔥 추가
                 .box(boxHeaderDTO)
                 .messages(summaryList)
+                .allowAnonymous(box.isAllowAnonymous())
                 .build();
     }
+
 
     @Override
     public void updateMessage(Long messageId, String newContent, User loginUser) {

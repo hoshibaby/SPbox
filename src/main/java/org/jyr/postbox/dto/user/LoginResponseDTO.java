@@ -10,7 +10,11 @@ public class LoginResponseDTO {
     private String userId;
     private String email;
     private String nickname;
+    private String role;
     private String token;
+    private String addressId;
+    private String boxUrlKey;
+
 
     public LoginResponseDTO(User user, String token) {
         this.id = user.getId();
@@ -18,5 +22,8 @@ public class LoginResponseDTO {
         this.email = user.getEmail();
         this.nickname = user.getNickname();
         this.token = token;
+        this.role = user.getRole().name();
+        this.addressId = user.getAddressId();
+        this.boxUrlKey = boxUrlKey;
     }
 }

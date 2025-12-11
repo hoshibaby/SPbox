@@ -23,6 +23,9 @@ public class User {
     private String email;
 
     @Column(nullable = false, unique = true, length = 30)
+    private String addressId;
+
+    @Column(nullable = false, unique = true, length = 30)
     private String userId;
 
     // 암호화된 비밀번호
@@ -37,10 +40,18 @@ public class User {
     @Column(length = 300)
     private String profileImageUrl;
 
+    // ✅ 헤더 배경 이미지 URL (nullable 허용)
+    @Column(length = 300)
+    private String headerImageUrl;
+
     // USER, ADMIN ...
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role;
+
+    // ✅ AI 상담 모드 사용 여부 (기본값 false)
+    @Column(nullable = false)
+    private boolean aiConsultingEnabled;
 
     private LocalDateTime createdAt;
 
@@ -49,6 +60,10 @@ public class User {
         this.createdAt = LocalDateTime.now();
         if (this.role == null) {
             this.role = UserRole.USER;
+        }
+        // 기본값
+        if (!this.aiConsultingEnabled) {
+            this.aiConsultingEnabled = false;
         }
     }
 }

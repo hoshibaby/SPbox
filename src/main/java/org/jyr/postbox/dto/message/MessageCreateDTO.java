@@ -9,4 +9,5 @@ public class MessageCreateDTO {
     private String boxUrlKey;
     // 본문 내용
     private String content;
+    private Boolean fromOwner;
 }

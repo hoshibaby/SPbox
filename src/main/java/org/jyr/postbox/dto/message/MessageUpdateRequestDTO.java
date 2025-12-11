@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class MessageUpdateRequestDTO {
 
-    private String userId;
+    private Long userId;
     private String content;
 }

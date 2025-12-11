@@ -53,6 +53,37 @@ public class BoxController {
         return ResponseEntity.ok(dto);
     }
 
+    // =============================
+    // 1) @userId 로 박스 헤더 조회
+    //     GET /api/boxes/user/{userId}/header
+    // =============================
+    @GetMapping("/boxes/user/{userId}/header")
+    public ResponseEntity<BoxHeaderDTO> getBoxHeaderByUserId(
+            @PathVariable String userId
+    ) {
+        BoxHeaderDTO dto = boxService.getBoxHeaderByUserId(userId);
+        return ResponseEntity.ok(dto);
+    }
+
+    // =============================
+    // 2) @userId 로 공개 메시지 목록 조회
+    //     GET /api/boxes/user/{userId}/messages?page=&size=
+    // =============================
+    @GetMapping("/boxes/user/{userId}/messages")
+    public ResponseEntity<MessagePageDTO> getPublicMessagesByUserId(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // userId -> Box -> urlKey 얻어서 기존 서비스 재사용
+        var box = boxService.getBoxByOwnerUserId(userId);
+        MessagePageDTO dto = messageService.getPublicMessages(box.getUrlKey(), page, size);
+        return ResponseEntity.ok(dto);
+    }
+
+
+
+
 
 
 }

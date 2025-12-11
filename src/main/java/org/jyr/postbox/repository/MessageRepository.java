@@ -35,4 +35,13 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // 공개 모드에서 보는 메시지 목록 (숨김 제외, 최신순)
     Page<Message> findByBoxAndHiddenFalseOrderByCreatedAtDesc(Box box, Pageable pageable);
 
+    // 박스 기준으로 메시지 찾기
+    List<Message> findByBox(Box box);
+
+    // 필요하면 이런 식으로도 사용 가능
+    void deleteAllByBox(Box box);
+
+    // 🔹 특정 유저가 작성한 모든 메시지 (어느 박스든 상관없이)
+    List<Message> findByAuthorUser(User authorUser);
+
 }

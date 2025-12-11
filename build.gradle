@@ -44,6 +44,7 @@ dependencies {
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-jackson
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     //시큐리티
     implementation 'org.springframework.security:spring-security-crypto'
 }

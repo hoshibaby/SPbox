@@ -15,8 +15,8 @@ public class JwtTokenProvider {
     private String secretKey;
 
     // 유효시간: 1시간 (원하면 늘려도 됨)
-    @Value("${app.jwt.expiration-in-ms}")
-    private final long validityInMs = 1000L * 60 * 60;
+    @Value("${app.jwt.expiration-in-ms:3600000}")
+    private long validityInMs;
 
     @PostConstruct
     protected void init() {

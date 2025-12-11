@@ -33,6 +33,10 @@ public class Message {
     @Column(nullable = false)
     private boolean hidden;
 
+    // 일반 메시지인지, 시스템 로깅용 메시지인지
+    @Column(nullable = false)
+    private boolean systemMessage;
+
     // 박스 주인의 답변 (있을 수도, 없을 수도)
     @Column(length = 1000)
     private String replyContent;
